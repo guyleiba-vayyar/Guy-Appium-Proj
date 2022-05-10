@@ -1,70 +1,65 @@
-import pytest
-import os
-import textwrap
-import copy
 import sys, os
+import time
+import threading
+import subprocess
+from appium import webdriver
+
+from appium.webdriver.common.appiumby import AppiumBy
+from appium.webdriver.extensions.android.nativekey import AndroidKey
+from appium.webdriver.common.touch_action import TouchAction
+
+##what does it means?
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
-from appium import webdriver
-from helpers import report_to_sauce, take_screenshot_and_logcat, ANDROID_BASE_CAPS, EXECUTOR
 
 
-class TestAndroidBasicInteractions():
-    PACKAGE = 'io.appium.android.apis'
-    SEARCH_ACTIVITY = '.app.SearchInvoke'
-    ALERT_DIALOG_ACTIVITY = '.app.AlertDialogSamples'
 
-    @pytest.fixture(scope='function')
-    def driver(self, request, device_logger):
-        calling_request = request._pyfuncitem.name
+desired_cap= {
+    "platformName": "Android",
+    "deviceName": "R5CN308Z4SE",
+    "appPackage":"com.walabot.test",
+    "appActivity":"com.walabot.vayyar.ai.plumbing.presentation.MainActivity",
+    "app": "C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk",
+    "noReset":True, ##means that app is not reinstalled
+    "fullReset":False
+}
 
-        caps = copy.copy(ANDROID_BASE_CAPS)
-        caps['name'] = calling_request
-        caps['appActivity'] = self.SEARCH_ACTIVITY
+try:
+    driver=webdriver.Remote("http://localhost:4723/wd/hub",desired_cap) ##create session
 
-        driver = webdriver.Remote(
-            command_executor=EXECUTOR,
-            desired_capabilities=caps
-        )
+except Exception as e:
+    print(e)
+print("bla")
 
-        def fin():
-            report_to_sauce(driver.session_id)
-            take_screenshot_and_logcat(driver, device_logger, calling_request)
-            driver.quit()
+driver.implicitly_wait(40)
 
-        request.addfinalizer(fin)
+##connection proccess
+driver.find_element(AppiumBy.ID,"com.walabot.test:id/chooseLastDevice").click() #fast reconnect button
+driver.find_element(AppiumBy.ID,"com.walabot.test:id/okButton").click() ##wifi notification button
+driver.find_element(AppiumBy.ID,"android:id/button1").click() ##android Op System connect button
 
-        driver.implicitly_wait(10)
-        return driver
 
-    def test_should_send_keys_to_search_box_and_then_check_the_value(self, driver):
-        search_box_element = driver.find_element_by_id('txt_query_prefill')
-        search_box_element.send_keys('Hello world!')
 
-        on_search_requested_button = driver.find_element_by_id('btn_start_search')
-        on_search_requested_button.click()
 
-        search_text = driver.find_element_by_id('android:id/search_src_text')
-        search_text_value = search_text.text
 
-        assert 'Hello world!' == search_text_value
+##guidence
+driver.find_element(AppiumBy.ID,"com.walabot.test:id/calibrateBtn").click() ##calibration button
+driver.press_keycode(AndroidKey.BACK)
 
-    def test_should_click_a_button_that_opens_an_alert_and_then_dismisses_it(self, driver):
-        driver.start_activity(self.PACKAGE, self.ALERT_DIALOG_ACTIVITY)
+driver.find_element(AppiumBy.XPATH,"/hierarchy/android.widget.FrameLayout/android.widget.LinearLayout/android.widget.FrameLayout/android.widget.RelativeLayout/android.widget.RelativeLayout/android.widget.RelativeLayout/android.widget.ImageView[4]").click()
+driver.find_element(AppiumBy.ID,"com.walabot.test:id/startScan").click()
 
-        open_dialog_button = driver.find_element_by_id('io.appium.android.apis:id/two_buttons')
-        open_dialog_button.click()
+driver.implicitly_wait(120)
+time.sleep(30)
 
-        alert_element = driver.find_element_by_id('android:id/alertTitle')
-        alert_text = alert_element.text
 
-        assert textwrap.dedent('''\
-        Lorem ipsum dolor sit aie consectetur adipiscing
-        Plloaso mako nuto siwuf cakso dodtos anr koop.''') == alert_text
 
-        close_dialog_button = driver.find_element_by_id('android:id/button1')
-        close_dialog_button.click()
+
+
+
+
 
 if __name__ == "__main__":
-    print(ANDROID_BASE_CAPS)
+    print("success")
+

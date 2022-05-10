@@ -2,16 +2,135 @@ import os
 import sys
 from selenium.common.exceptions import InvalidSessionIdException
 from datetime import datetime
-from sauceclient import SauceClient
+import sys, os
+import time
+import threading
+import subprocess
+from appium import webdriver
+from subprocess import call
+import traceback
+import logging
+from subprocess import check_output, CalledProcessError
+
+from appium.webdriver.common.appiumby import AppiumBy
+from appium.webdriver.extensions.android.nativekey import AndroidKey
+from appium.webdriver.common.touch_action import TouchAction
+
+def main_session(app_package,apk_path,choosen_folder):
+
+    try:
+        ANDROID_BASE_CAPS=get_base_caps(app_package,apk_path)
+        driver = webdriver.Remote("http://localhost:4723/wd/hub", ANDROID_BASE_CAPS)  ##create session
+        driver.implicitly_wait(10)
+        guidence_nav(driver,app_package)
+        driver.implicitly_wait(120)
+        time.sleep(110)
+        __fin(driver,app_package,choosen_folder)
+    except Exception as e:
+        return e
+def guidence_nav(driver,app_package):
+
+    ##Draft!
+
+    driver.find_element(AppiumBy.ID, "{pack}:id/chooseLastDevice".format(pack=app_package)).click()  # fast reconnect button
+    driver.find_element(AppiumBy.ID, "{pack}:id/okButton".format(pack=app_package)).click()  ##wifi notification button
+    driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
+    driver.find_element(AppiumBy.ID, "{pack}:id/calibrateBtn".format(pack=app_package)).click()  ##calibration button
+    driver.press_keycode(AndroidKey.BACK)
+    temp_string='/hierarchy/android.widget.FrameLayout/' \
+                'android.widget.LinearLayout/'\
+                'android.widget.FrameLayout/android.widget.RelativeLayout/'\
+                'android.widget.RelativeLayout/android.widget.RelativeLayout/'\
+                'android.widget.ImageView[4]'
+
+    driver.find_element(AppiumBy.XPATH,temp_string).click()
+    driver.find_element(AppiumBy.ID, "{pack}:id/startScan".format(pack=app_package)).click()
 
 
-ANDROID_BASE_CAPS = {
-    'app': os.path.abspath('../apps/ApiDemos-debug.apk'),
-    'automationName': 'UIAutomator2',
-    'platformName': 'Android',
-    'platformVersion': os.getenv('ANDROID_PLATFORM_VERSION') or '8.0',
-    'deviceName': os.getenv('ANDROID_DEVICE_VERSION') or 'Android Emulator',
-}
+    ##connection proccess !!working!!
+
+    # driver.find_element(AppiumBy.ID, "com.walabot.test:id/chooseLastDevice").click()  # fast reconnect button
+    # driver.find_element(AppiumBy.ID, "com.walabot.test:id/okButton").click()  ##wifi notification button
+    # driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
+
+##need to add devlogname
+
+def _pull_devlog(app_package, choosen_folder):
+    adb_pullcommand = "adb pull /sdcard/Android/data/{pack}/files/devlog.txt {folder}".format(pack=app_package,folder=choosen_folder)
+    subprocess.call(adb_pullcommand, shell=True)
+
+def _delete_devlog(app_package):
+
+    adb_del_command = "adb shell rm /sdcard/Android/data/{pack}/files/devlog.txt".format(pack=app_package)
+    subprocess.call(adb_del_command, shell=True)
+
+
+def __fin(driver,app_package,choosen_folder):
+
+    _pull_devlog(app_package, choosen_folder)  ##extractdevlog
+    _delete_devlog(app_package)  ##deletedevlog
+    driver.close_app()
+    driver.quit()
+
+
+def get_base_caps(app_package,apk_path):
+
+    ANDROID_BASE_CAPS= {
+        "platformName": "Android",
+        "deviceName": "R5CN308Z4SE",
+        #"appPackage":"com.walabot.test",
+        "appPackage": app_package,
+        "appActivity":"com.walabot.vayyar.ai.plumbing.presentation.MainActivity",
+        #"app": "C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk",
+        "app": apk_path,
+        "noReset":True, ##means that app is not reinstalled
+        "fullReset":False
+    }
+    return ANDROID_BASE_CAPS
+
+
+##needs more work with regex
+def adb_device():
+    try:
+        adb_ouput = check_output(["adb", "devices"])
+        print(adb_ouput)
+    except CalledProcessError as e:
+        print(e.returncode)
+
+apk_package="com.walabot.test"
+apk_path="C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk"
+folder=r'C:\Users\GuyLeiba\OneDrive - vayyar.com\Desktop\Testing Fr_test'
+error=main_session(apk_package,apk_path,folder)
+
+# def isappinstalled(driver,desired_package): ##draft
+#
+#     bool_index=False
+#     app_packeges_lst=[] #insert all app packeges that i have
+#     app_packeges_lst.append("com.walabot.vayyar.ai.plumbing")
+#     for i in range(len(app_packeges_lst)):
+#         bool_index=driver.is_app_installed(app_package)
+#         if bool_index==True and app_packeges_lst[i]!=desired_package:
+#             undesired_packege=app_packeges_lst[i]
+#             break
+#     return undesired_packege
+
+
+# def isconnected(driver):
+#     threading.Timer(30.0, isconnected).start() # called every minute
+#     boolval=driver.find_element(AppiumBy.ID,"com.walabot.test:id/reconnectButton").is_displayed()
+#     if boolval:
+#         print("Walabot is Disconnected")
+#
+
+
+
+
+
+
+
+
+
+
 
 IOS_BASE_CAPS = {
     'app': os.path.abspath('../apps/TestApp.app.zip'),
@@ -21,26 +140,6 @@ IOS_BASE_CAPS = {
     'deviceName': os.getenv('IOS_DEVICE_NAME') or 'iPhone 8 Simulator',
     # 'showIOSLog': False,
 }
-
-sauce = None
-if os.getenv('SAUCE_LABS') and os.getenv('SAUCE_USERNAME') and os.getenv('SAUCE_ACCESS_KEY'):
-    build_id = os.getenv('TRAVIS_BUILD_ID') or datetime.now().strftime('%B %d, %Y %H:%M:%S')
-    build_name = 'Python Sample Code %s' % build_id
-
-    ANDROID_BASE_CAPS['build'] = build_name
-    ANDROID_BASE_CAPS['tags'] = ['e2e', 'appium', 'sample-code', 'android', 'python']
-    ANDROID_BASE_CAPS['app'] = 'http://appium.github.io/appium/assets/ApiDemos-debug.apk'
-
-    IOS_BASE_CAPS['build'] = build_name
-    IOS_BASE_CAPS['tags'] = ['e2e', 'appium', 'sample-code', 'ios', 'python']
-    IOS_BASE_CAPS['app'] = 'http://appium.github.io/appium/assets/TestApp9.4.app.zip'
-
-    EXECUTOR = 'http://{}:{}@ondemand.saucelabs.com:80/wd/hub'.format(
-        os.getenv('SAUCE_USERNAME'), os.getenv('SAUCE_ACCESS_KEY'))
-
-    sauce = SauceClient(os.getenv('SAUCE_USERNAME'), os.getenv('SAUCE_ACCESS_KEY'))
-else:
-    EXECUTOR = 'http://127.0.0.1:4723/wd/hub'
 
 
 def ensure_dir(directory):
@@ -70,13 +169,3 @@ def __save_log_type(driver, device_logger, calling_request, type):
         for data in logcat_data:
             data_string = '%s:  %s\n' % (data['timestamp'], data['message'].encode('utf-8'))
             logcat_file.write(data_string)
-
-def report_to_sauce(session_id):
-    if sauce is not None:
-        print("Link to your job: https://saucelabs.com/jobs/%s" % session_id)
-        passed = str(sys.exc_info() == (None, None, None))
-        sauce.jobs.update_job(session_id, passed=passed)
-    else:
-        # this function gets called whether sauce is enabled or not.
-        # if we get here, we weren't using sauce, so silently do nothing
-        pass
