@@ -12,9 +12,9 @@ class App(tk.Tk):
         super().__init__() # create window
 
         self.title('Temperature Converter')
-        #self.geometry("540x320")
         self.geometry("540x320")
         self.resizable(False, False)
+        self.Frame(self, bg='#FFFFFF', width=540, height=320)
 
 class ButtonFrame(ttk.Frame):
     def __init__(self, container):
@@ -25,10 +25,17 @@ class ButtonFrame(ttk.Frame):
         # self.columnconfigure(0, weight=7)
         # self.columnconfigure(1, weight=3)
         # self.columnconfigure(2, weight=1)
-        frame_apk = tk.Frame(master=self).pack(side=tk.TOP)
-        frame_folder = tk.Frame(master=self).pack(side=tk.TOP)
-        frame_check = tk.Frame(master=self).pack(side=tk.TOP)
-        frame_error = tk.Frame(master=self).pack(side=tk.TOP)
+
+        # main_container = tk.Frame(self, bg='#FFFFFF', width=500, height=500)
+        # main_container.pack(fill='both', padx=20, pady=20)  # Add some padding to see container difference
+        # main_container.pack_propagate(False)  # Avoid sizing based on widget contents
+        # for row in range(4):
+        #     self.grid_rowconfigure(row, minsize=20)
+
+        frame_apk = tk.Frame(container).grid(column=0, row=0)
+        frame_folder = tk.Frame(container).grid(column=0, row=1)
+        frame_check = tk.Frame(container).grid(column=0, row=2)
+        frame_error = tk.Frame(container).grid(column=0, row=3)
 
         #self.filename = "" # variable to store filename
 

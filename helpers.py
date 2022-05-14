@@ -16,18 +16,27 @@ from appium.webdriver.common.appiumby import AppiumBy
 from appium.webdriver.extensions.android.nativekey import AndroidKey
 from appium.webdriver.common.touch_action import TouchAction
 
-def main_session(app_package,apk_path,choosen_folder):
 
+
+def main():
+    pass
+if __name__ == "__main__":
+    main()
+
+def main_session(app_package, apk_path, choosen_folder,devlogname):
     try:
         ANDROID_BASE_CAPS=get_base_caps(app_package,apk_path)
         driver = webdriver.Remote("http://localhost:4723/wd/hub", ANDROID_BASE_CAPS)  ##create session
-        driver.implicitly_wait(10)
+        driver.implicitly_wait(30)
         guidence_nav(driver,app_package)
         driver.implicitly_wait(120)
-        time.sleep(110)
-        __fin(driver,app_package,choosen_folder)
+        time.sleep(20)
+        status=fin(driver,app_package,choosen_folder,devlogname)
+        return status
     except Exception as e:
         return e
+
+
 def guidence_nav(driver,app_package):
 
     ##Draft!
@@ -35,7 +44,9 @@ def guidence_nav(driver,app_package):
     driver.find_element(AppiumBy.ID, "{pack}:id/chooseLastDevice".format(pack=app_package)).click()  # fast reconnect button
     driver.find_element(AppiumBy.ID, "{pack}:id/okButton".format(pack=app_package)).click()  ##wifi notification button
     driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
+    driver.find_element(AppiumBy.ID, "{pack}:id/done".format(pack=app_package)).click()  ##done btn
     driver.find_element(AppiumBy.ID, "{pack}:id/calibrateBtn".format(pack=app_package)).click()  ##calibration button
+
     driver.press_keycode(AndroidKey.BACK)
     temp_string='/hierarchy/android.widget.FrameLayout/' \
                 'android.widget.LinearLayout/'\
@@ -53,35 +64,54 @@ def guidence_nav(driver,app_package):
     # driver.find_element(AppiumBy.ID, "com.walabot.test:id/okButton").click()  ##wifi notification button
     # driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
 
-##need to add devlogname
 
-def _pull_devlog(app_package, choosen_folder):
-    adb_pullcommand = "adb pull /sdcard/Android/data/{pack}/files/devlog.txt {folder}".format(pack=app_package,folder=choosen_folder)
-    subprocess.call(adb_pullcommand, shell=True)
+def name_validator(devlogname):
+    if ".txt" in devlogname:
+        return devlogname
+    else:
+        return devlogname+".txt"
 
-def _delete_devlog(app_package):
+def pull_devlog(app_package, choosen_folder,devlog):
+
+    ###if no file name was entered
+    if devlog:
+        choosen_folder = choosen_folder + "\\" + devlog
+        adb_pullcommand = "adb pull /sdcard/Android/data/{pack}/files/devlog.txt {folder}".format(pack=app_package,
+                                                                                                  folder=choosen_folder)
+    else:
+        adb_pullcommand = "adb pull /sdcard/Android/data/{pack}/files/devlog.txt {folder}".format(pack=app_package,folder=choosen_folder)
+
+    try:
+        out = check_output(adb_pullcommand.split())
+        if "1 file pulled" in str(out):
+            return "Process Done With No Errors"
+        else:
+            return "No files"
+    except Exception as e:
+        return "Error with pulling the file "+str(e)
+
+def delete_devlog(app_package):
 
     adb_del_command = "adb shell rm /sdcard/Android/data/{pack}/files/devlog.txt".format(pack=app_package)
     subprocess.call(adb_del_command, shell=True)
 
 
-def __fin(driver,app_package,choosen_folder):
+def fin(driver,app_package,choosen_folder,devlog):
 
-    _pull_devlog(app_package, choosen_folder)  ##extractdevlog
-    _delete_devlog(app_package)  ##deletedevlog
+    new_name=name_validator(devlog)
+    status=pull_devlog(app_package, choosen_folder,new_name)  ##extractdevlog
+    delete_devlog(app_package)  ##deletedevlog
     driver.close_app()
     driver.quit()
-
+    return status
 
 def get_base_caps(app_package,apk_path):
 
     ANDROID_BASE_CAPS= {
         "platformName": "Android",
         "deviceName": "R5CN308Z4SE",
-        #"appPackage":"com.walabot.test",
         "appPackage": app_package,
         "appActivity":"com.walabot.vayyar.ai.plumbing.presentation.MainActivity",
-        #"app": "C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk",
         "app": apk_path,
         "noReset":True, ##means that app is not reinstalled
         "fullReset":False
@@ -89,7 +119,17 @@ def get_base_caps(app_package,apk_path):
     return ANDROID_BASE_CAPS
 
 
+def package_setter(compare_str):
+    if compare_str == "Dev":
+        return "com.walabot.test"
+    elif compare_str == "Production":
+        return "com.walabot.vayyar.ai.plumbing"
+    else:
+        raise AttributeError
+
+
 ##needs more work with regex
+
 def adb_device():
     try:
         adb_ouput = check_output(["adb", "devices"])
@@ -97,10 +137,14 @@ def adb_device():
     except CalledProcessError as e:
         print(e.returncode)
 
-apk_package="com.walabot.test"
-apk_path="C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk"
-folder=r'C:\Users\GuyLeiba\OneDrive - vayyar.com\Desktop\Testing Fr_test'
-error=main_session(apk_package,apk_path,folder)
+
+
+#
+# apk_package="com.walabot.test"
+# apk_path="C:\\Users\\GuyLeiba\\OneDrive - vayyar.com\\Desktop\\testapp\\my.apk"
+# folder=r'C:\Users\GuyLeiba\OneDrive - vayyar.com\Desktop\Testing Fr_test'
+# error=helpers.main(apk_package,apk_path,folder)
+#
 
 # def isappinstalled(driver,desired_package): ##draft
 #
@@ -122,50 +166,3 @@ error=main_session(apk_package,apk_path,folder)
 #         print("Walabot is Disconnected")
 #
 
-
-
-
-
-
-
-
-
-
-
-IOS_BASE_CAPS = {
-    'app': os.path.abspath('../apps/TestApp.app.zip'),
-    'automationName': 'xcuitest',
-    'platformName': 'iOS',
-    'platformVersion': os.getenv('IOS_PLATFORM_VERSION') or '12.2',
-    'deviceName': os.getenv('IOS_DEVICE_NAME') or 'iPhone 8 Simulator',
-    # 'showIOSLog': False,
-}
-
-
-def ensure_dir(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-
-def take_screenshot_and_logcat(driver, device_logger, calling_request):
-    __save_log_type(driver, device_logger, calling_request, 'logcat')
-
-
-def take_screenshot_and_syslog(driver, device_logger, calling_request):
-    __save_log_type(driver, device_logger, calling_request, 'syslog')
-
-
-def __save_log_type(driver, device_logger, calling_request, type):
-    logcat_dir = device_logger.logcat_dir
-    screenshot_dir = device_logger.screenshot_dir
-
-    try:
-        driver.save_screenshot(os.path.join(screenshot_dir, calling_request + '.png'))
-        logcat_data = driver.get_log(type)
-    except InvalidSessionIdException:
-        logcat_data = ''
-
-    with open(os.path.join(logcat_dir, '{}_{}.log'.format(calling_request, type)), 'w') as logcat_file:
-        for data in logcat_data:
-            data_string = '%s:  %s\n' % (data['timestamp'], data['message'].encode('utf-8'))
-            logcat_file.write(data_string)
