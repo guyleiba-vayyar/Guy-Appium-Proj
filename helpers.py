@@ -11,19 +11,13 @@ from subprocess import call
 import traceback
 import logging
 from subprocess import check_output, CalledProcessError
-
 from appium.webdriver.common.appiumby import AppiumBy
 from appium.webdriver.extensions.android.nativekey import AndroidKey
 from appium.webdriver.common.touch_action import TouchAction
 
 
-
-def main():
-    pass
-if __name__ == "__main__":
-    main()
-
 def main_session(app_package, apk_path, choosen_folder,devlogname):
+
     try:
         ANDROID_BASE_CAPS=get_base_caps(app_package,apk_path)
         driver = webdriver.Remote("http://localhost:4723/wd/hub", ANDROID_BASE_CAPS)  ##create session
@@ -39,11 +33,18 @@ def main_session(app_package, apk_path, choosen_folder,devlogname):
 
 def guidence_nav(driver,app_package):
 
+    """
+
+    :param driver:
+    :param app_package:
+    :return:
+    """
+
     ##Draft!
 
     driver.find_element(AppiumBy.ID, "{pack}:id/chooseLastDevice".format(pack=app_package)).click()  # fast reconnect button
     driver.find_element(AppiumBy.ID, "{pack}:id/okButton".format(pack=app_package)).click()  ##wifi notification button
-    driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
+    driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android OS System connect button
     driver.find_element(AppiumBy.ID, "{pack}:id/done".format(pack=app_package)).click()  ##done btn
     driver.find_element(AppiumBy.ID, "{pack}:id/calibrateBtn".format(pack=app_package)).click()  ##calibration button
 
@@ -57,12 +58,6 @@ def guidence_nav(driver,app_package):
     driver.find_element(AppiumBy.XPATH,temp_string).click()
     driver.find_element(AppiumBy.ID, "{pack}:id/startScan".format(pack=app_package)).click()
 
-
-    ##connection proccess !!working!!
-
-    # driver.find_element(AppiumBy.ID, "com.walabot.test:id/chooseLastDevice").click()  # fast reconnect button
-    # driver.find_element(AppiumBy.ID, "com.walabot.test:id/okButton").click()  ##wifi notification button
-    # driver.find_element(AppiumBy.ID, "android:id/button1").click()  ##android Op System connect button
 
 
 def name_validator(devlogname):
@@ -87,6 +82,7 @@ def pull_devlog(app_package, choosen_folder,devlog):
             return "Process Done With No Errors"
         else:
             return "No files"
+
     except Exception as e:
         return "Error with pulling the file "+str(e)
 
@@ -116,6 +112,7 @@ def get_base_caps(app_package,apk_path):
         "noReset":True, ##means that app is not reinstalled
         "fullReset":False
     }
+
     return ANDROID_BASE_CAPS
 
 
@@ -138,6 +135,8 @@ def adb_device():
         print(e.returncode)
 
 
+# def which_apk_installed(driver,package):
+#     driver.is_app_installed('com.example.AppName');
 
 #
 # apk_package="com.walabot.test"
@@ -165,4 +164,3 @@ def adb_device():
 #     if boolval:
 #         print("Walabot is Disconnected")
 #
-
